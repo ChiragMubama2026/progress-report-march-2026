@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chirag Nayak · Progress Report 2026</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy:    #0B0F1E;
+  --surface: #111827;
+  --card:    #161D2F;
+  --border:  rgba(255,255,255,0.07);
+  --c1: #E05252; --c2: #D4892A; --c3: #1AA88A; --c4: #7C63C0;
+  --white: #F4F6FF;  --muted: #5A6480;  --sub: #9BA3C0;
+}
+
+body {
+  background: var(--navy);
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  color: var(--white);
+  cursor: none;
+}
+
+canvas { display: block; position: fixed; inset: 0; z-index: 0; }
+
+/* ── CURSOR ── */
+#cur {
+  position: fixed; width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255,255,255,0.85); pointer-events: none; z-index: 9999;
+  transform: translate(-50%,-50%); transition: width .15s, height .15s;
+  mix-blend-mode: difference;
+}
+#cur.big { width: 36px; height: 36px; }
+
+/* ── INTRO ── */
+#intro {
+  position: fixed; inset: 0; z-index: 300;
+  background: var(--navy);
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+  gap: 0; transition: opacity 1s ease, visibility 1s;
+}
+#intro.out { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.intro-eyebrow {
+  font-size: 10px; letter-spacing: 5px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 20px; font-weight: 500;
+}
+.intro-name {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(52px, 9vw, 110px); font-weight: 900; line-height: .95;
+  text-align: center; color: var(--white); margin-bottom: 6px;
+}
+.intro-title {
+  font-size: 13px; color: var(--sub); letter-spacing: 2px;
+  text-align: center; margin-bottom: 48px; font-weight: 400;
+}
+.intro-bar {
+  display: flex; gap: 0; margin-bottom: 48px; border-radius: 6px; overflow: hidden;
+}
+.intro-bar span {
+  padding: 8px 22px; font-size: 11px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase;
+}
+#enter {
+  padding: 15px 48px; border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06); color: var(--white);
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+  border-radius: 4px; transition: all .25s; backdrop-filter: blur(8px);
+}
+#enter:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.4); }
+.intro-hint {
+  margin-top: 20px; font-size: 11px; color: var(--muted);
+  letter-spacing: 2px; text-transform: uppercase;
+}
+
+/* ── NAV BAR ── */
+#nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 36px; height: 58px;
+  background: rgba(11,15,30,0.88); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  opacity: 0; transition: opacity .6s; pointer-events: none;
+}
+#nav.show { opacity: 1; pointer-events: all; }
+.nav-brand {
+  font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700;
+  color: var(--white); letter-spacing: .5px;
+}
+.nav-brand span { color: var(--muted); font-weight: 400; font-family: 'Inter', sans-serif; font-size: 12px; margin-left: 10px; }
+.nav-tabs { display: flex; gap: 4px; }
+.nav-tab {
+  padding: 7px 18px; border-radius: 4px; border: none;
+  background: transparent; color: var(--muted); font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: 'Inter', sans-serif; letter-spacing: .5px;
+  transition: all .2s;
+}
+.nav-tab:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+.nav-tab.active { color: var(--white); background: rgba(255,255,255,0.09); }
+.nav-right { font-size: 11px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ── HINT ── */
+#hint {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase;
+  z-index: 100; opacity: 0; transition: opacity .6s; white-space: nowrap;
+  display: flex; gap: 20px; align-items: center;
+}
+#hint.show { opacity: 1; }
+.hint-sep { width: 3px; height: 3px; border-radius: 50%; background: var(--muted); opacity: .4; }
+
+/* ── TOOLTIP ── */
+#tip {
+  position: fixed; z-index: 200; pointer-events: none;
+  padding: 12px 18px; border-radius: 8px;
+  background: rgba(11,15,30,0.96); border: 1px solid var(--border);
+  backdrop-filter: blur(20px); opacity: 0; transition: opacity .18s;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+#tip-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+#tip-sub  { font-size: 11px; color: var(--muted); }
+#tip-dur  { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-top: 5px; }
+
+/* ── SIDE PANEL ── */
+#panel {
+  position: fixed; top: 0; right: -500px; width: 460px; height: 100vh;
+  background: var(--surface); border-left: 1px solid var(--border);
+  z-index: 150; transition: right .5s cubic-bezier(.16,1,.3,1);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+#panel.open { right: 0; }
+
+#panel-head {
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+}
+#panel-head-label { font-size: 10px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; font-weight: 500; }
+#panel-close {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--muted); cursor: pointer; display: flex;
+  align-items: center; justify-content: center; font-size: 14px;
+  transition: all .2s;
+}
+#panel-close:hover { background: rgba(255,255,255,0.06); color: var(--white); }
+
+#panel-body {
+  flex: 1; overflow-y: auto; padding: 32px 28px 48px;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+#panel-body::-webkit-scrollbar { width: 4px; }
+#panel-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+/* Panel content styles */
+.pj-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 64px; font-weight: 900; line-height: 1;
+  margin-bottom: 2px; opacity: .12;
+}
+.pj-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 24px; font-weight: 700; line-height: 1.2;
+  margin-bottom: 5px;
+}
+.pj-sub {
+  font-size: 11px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 22px;
+}
+.pj-dur {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-radius: 4px;
+  font-size: 11px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; margin-bottom: 32px;
+}
+
+.sec-label {
+  font-size: 9px; font-weight: 600; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+}
+.pain-block {
+  padding: 16px 18px; border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  border-left: 2px solid;
+  font-size: 13px; line-height: 1.75; color: var(--sub);
+  margin-bottom: 32px;
+}
+
+.ach-list { list-style: none; display: flex; flex-direction: column; gap: 13px; margin-bottom: 32px; }
+.ach-list li {
+  display: flex; gap: 12px; align-items: flex-start;
+  font-size: 13px; line-height: 1.65; color: #B0BBDA;
+}
+.ach-bullet {
+  flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; margin-top: 2px;
+}
+
+.tags-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.tag {
+  padding: 5px 13px; border-radius: 4px;
+  font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+}
+
+.divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+/* Timeline in panel */
+.tl { display: flex; flex-direction: column; }
+.tl-row { display: flex; gap: 16px; padding-bottom: 20px; }
+.tl-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 14px; }
+.tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.tl-stem { width: 1px; flex: 1; min-height: 12px; background: var(--border); margin-top: 5px; }
+.tl-row:last-child .tl-stem { display: none; }
+.tl-wk  { font-size: 9px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; opacity: .55; margin-bottom: 4px; }
+.tl-ttl { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.tl-dsc { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+/* Overview cards in panel */
+.ov-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 8px;
+  background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+  cursor: pointer; margin-bottom: 10px; transition: all .2s;
+}
+.ov-card:hover { background: rgba(255,255,255,0.055); }
+.ov-num { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; opacity: .25; min-width: 32px; }
+.ov-info { flex: 1; }
+.ov-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+.ov-meta { font-size: 11px; color: var(--muted); }
+.ov-arrow { color: var(--muted); font-size: 14px; transition: transform .2s; }
+.ov-card:hover .ov-arrow { transform: translateX(3px); color: var(--white); }
+
+/* Secondary cards */
+.sec-card {
+  padding: 20px 20px; border-radius: 8px;
+  background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+.sec-card-num { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 900; opacity: .15; line-height: 1; margin-bottom: 8px; }
+.sec-card-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.sec-card-body { font-size: 12.5px; color: var(--sub); line-height: 1.72; }
+
+/* Closing block */
+.closing-quote {
+  font-family: 'Playfair Display', serif; font-style: italic;
+  font-size: 15px; line-height: 1.75; color: var(--sub);
+  padding: 22px; border-radius: 8px;
+  background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.closing-author {
+  display: flex; align-items: center; gap: 14px; padding: 0 4px;
+}
+.closing-av {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif; font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
+}
+.closing-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.closing-role { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+
+<!-- INTRO -->
+<div id="intro">
+  <div class="intro-eyebrow">Monthly Progress Report &nbsp;·&nbsp; Feb 02 – Mar 25, 2026</div>
+  <div class="intro-name">Chirag<br>Nayak</div>
+  <div class="intro-title">Engineering &nbsp;·&nbsp; 4 Primary Projects</div>
+  <div class="intro-bar">
+    <span style="background:#E05252;color:#fff">Console</span>
+    <span style="background:#D4892A;color:#fff">Analytics</span>
+    <span style="background:#1AA88A;color:#fff">Backtesting</span>
+    <span style="background:#7C63C0;color:#fff">Pipelines</span>
+  </div>
+  <button id="enter">Enter Report</button>
+  <div class="intro-hint">Drag · Hover · Click</div>
+</div>
+
+<!-- NAV -->
+<div id="nav">
+  <div class="nav-brand">Chirag Nayak <span>Progress Report 2026</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab" data-view="overview">Overview</button>
+    <button class="nav-tab" data-view="timeline">Timeline</button>
+    <button class="nav-tab" data-view="secondary">Contributions</button>
+  </div>
+  <div class="nav-right">Drag to Orbit &nbsp;·&nbsp; Click Cards</div>
+</div>
+
+<!-- HINT -->
+<div id="hint">
+  <span>Drag to orbit</span>
+  <span class="hint-sep"></span>
+  <span>Hover to preview</span>
+  <span class="hint-sep"></span>
+  <span>Click to read</span>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tip">
+  <div id="tip-name"></div>
+  <div id="tip-sub"></div>
+  <div id="tip-dur"></div>
+</div>
+
+<!-- SIDE PANEL -->
+<div id="panel">
+  <div id="panel-head">
+    <div id="panel-head-label">Details</div>
+    <button id="panel-close">✕</button>
+  </div>
+  <div id="panel-body"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════
+const PROJECTS = [
+  {
+    id:'p1', num:'01',
+    hex:'#E05252', color:0xE05252, bg:'#E0525218',
+    title:'MBM-Sites-Internal', sub:'Mubama Console',
+    duration:'4–5 Weeks', emoji:'🖥',
+    pain:'Traders were forced to juggle multiple windows and tools simultaneously. Relying on external trading platforms caused continuous revenue loss through third-party fees while ceding control over pricing and execution.',
+    items:[
+      'Migrated to FIX API — trading brought fully in-house, eliminating costly external dependencies.',
+      'Redesigned the margin display to be more intuitive and user-friendly for traders.',
+      'Built and integrated a broker exposure view with a clean, readable layout.',
+      'Implemented correct timezone conversion across the entire charts page.',
+      'Fixed data representation issues in charts; ongoing responsiveness and UX improvements.',
+    ],
+    tags:['FastAPI','Python','FIX API','Endpoint Integration'],
+  },
+  {
+    id:'p2', num:'02',
+    hex:'#D4892A', color:0xD4892A, bg:'#D4892A18',
+    title:'MBM-Sites-Analytics', sub:'Real-Time Trading Dashboard',
+    duration:'2 Days', emoji:'📊',
+    pain:'Visualising and analysing data quickly was a bottleneck. Users had to sift through excessive information to find relevant figures for time-sensitive trading decisions, causing delays and potential errors.',
+    items:[
+      'Built from scratch in a single night on an urgent basis to surface only key trading metrics.',
+      'Account selector for seamlessly switching between all handled trading accounts.',
+      'KPI cards, data tables, and position tickets for instant at-a-glance insights.',
+      'Charts showing position performance, breakeven distance, and other key visualisations.',
+      'Custom WebSocket pipeline to stream live data directly to the dashboard in real time.',
+    ],
+    tags:['FastAPI','Python','WebSocket'],
+  },
+  {
+    id:'p3', num:'03',
+    hex:'#1AA88A', color:0x1AA88A, bg:'#1AA88A18',
+    title:"Liam's Backtesting Engine", sub:'QA, Automation & Data Pipeline',
+    duration:'3 Weeks', emoji:'⚙️',
+    pain:"The engine was still in progress and unable to run backtests. Comparing results with MT5 required 100+ individual manual steps per test run — an unsustainable process that consumed significant time and bandwidth.",
+    items:[
+      'Identified fixes that brought the engine from non-functional to successfully executing backtests.',
+      'Delivered detailed feedback with screen recordings covering both UI issues and Databricks backend code.',
+      'Thoroughly reviewed the entire Backtest Runner codebase — can now independently assist Liam.',
+      'Stress-tested across speed, load, network edge cases, and failure scenarios with clear benchmarks.',
+      'Automated the MT5 comparison workflow: 100+ manual steps reduced to a clean 3-step process.',
+      'Uploaded latest market data for XAUUSD, XAGUSD, and EURUSD into Databricks with correct differentiation.',
+    ],
+    tags:['Python','MT5','Databricks','Automation'],
+  },
+  {
+    id:'p4', num:'04',
+    hex:'#7C63C0', color:0x7C63C0, bg:'#7C63C018',
+    title:'Data Pipelines', sub:'Quality Assurance & Integrity',
+    duration:'1 Day', emoji:'🗄️',
+    pain:'Duplicate entries and null values in existing pipelines were causing incorrect outputs in Databricks visualisations. Additionally, timezone conversion errors in the new data table were producing inaccurate backtesting results.',
+    items:[
+      'Identified missing data and duplicate entries using SQL commands and Python scripts.',
+      'Resolved all issues with permanent fixes designed to prevent any recurrence.',
+      'Fixed timezone conversion errors in the new data table affecting Liam\'s engine accuracy.',
+    ],
+    tags:['SQL','Python','Databricks'],
+  },
+];
+
+const TIMELINE = [
+  { week:'Weeks 1–2', title:'Mubama Console Overhaul',    desc:'Margin display redesign, timezone correction, broker exposure view, chart accuracy fixes.', hex:'#E05252' },
+  { week:'Emergency', title:'Analytics Dashboard',         desc:'Full analytics site built overnight — WebSocket pipeline, KPI cards, live position charts.', hex:'#D4892A' },
+  { week:'Week 3',    title:'Engine Diagnosis & Recovery', desc:'Brought the non-functional backtesting engine to operational state with comprehensive feedback.', hex:'#1AA88A' },
+  { week:'Week 4',    title:'MT5 Automation',              desc:'100+ manual comparison steps replaced with a 3-step automated workflow, filling tracking sheets automatically.', hex:'#1AA88A' },
+  { week:'Week 5',    title:'Data Quality Fixes',          desc:'Resolved duplicates, null values, and timezone issues across Databricks pipelines.', hex:'#7C63C0' },
+  { week:'Ongoing',   title:'Continuous Data Pipeline',    desc:'Scoping the next milestone: automated data ingestion from source to Liam\'s engine.', hex:'#5A6480' },
+];
+
+const SECONDARY = [
+  {
+    num:'01', hex:'#D4892A',
+    title:'Interactive Excel Tracker',
+    body:"Built an interactive Excel spreadsheet for Sourav Sir on an urgent basis. The tracker is now used to monitor the ongoing Mubama Console project — covering milestones, timelines, and delivery status across all phases.",
+  },
+  {
+    num:'02', hex:'#1AA88A',
+    title:'PC Build Research & Recommendation',
+    body:"Researched and recommended detailed PC specifications for Sidhu — including compatible part combinations, compatibility checks, and trusted build websites — all within the required budget constraints.",
+  },
+];
+
+// ═══════════════════════════════════════════════
+// THREE.JS SCENE
+// ═══════════════════════════════════════════════
+const scene    = new THREE.Scene();
+const camera   = new THREE.PerspectiveCamera(52, innerWidth/innerHeight, 0.1, 500);
+camera.position.set(0, 0, 13);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+// Fog
+scene.fog = new THREE.FogExp2(0x0B0F1E, 0.022);
+
+// Lights
+scene.add(new THREE.AmbientLight(0x1a2040, 2.5));
+const key = new THREE.DirectionalLight(0xffffff, 1.2);
+key.position.set(5, 8, 6);
+key.castShadow = true;
+scene.add(key);
+
+// Coloured rim lights per project
+PROJECTS.forEach((p,i) => {
+  const pos = [[-7,4,-3],[7,4,-3],[-7,-2,3],[7,-2,3]];
+  const l = new THREE.PointLight(p.color, 0.9, 20);
+  l.position.set(...pos[i]);
+  scene.add(l);
+});
+
+// ── STARS ──
+const sg = new THREE.BufferGeometry();
+const sp = new Float32Array(1800*3);
+for(let i=0;i<1800*3;i++) sp[i]=(Math.random()-.5)*120;
+sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+scene.add(new THREE.Points(sg, new THREE.PointsMaterial({color:0xffffff,size:0.06,transparent:true,opacity:0.45})));
+
+// ── SUBTLE FLOOR ──
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(60,60,24,24),
+  new THREE.MeshStandardMaterial({color:0x090d1a, wireframe:true, transparent:true, opacity:0.15})
+);
+floor.rotation.x = -Math.PI/2;
+floor.position.y = -5.5;
+scene.add(floor);
+
+// ── FLOATING DUST PARTICLES ──
+const dg = new THREE.BufferGeometry();
+const dp = new Float32Array(300*3);
+for(let i=0;i<300*3;i++) dp[i]=(Math.random()-.5)*30;
+dg.setAttribute('position',new THREE.BufferAttribute(dp,3));
+const dust = new THREE.Points(dg, new THREE.PointsMaterial({color:0x4466aa,size:0.04,transparent:true,opacity:0.3}));
+scene.add(dust);
+
+// ═══════════════════════════════════════════════
+// CARD TEXTURE FACTORY — name-only tiles
+// ═══════════════════════════════════════════════
+function makeCardTex(proj) {
+  const W=640, H=400;
+  const cv = document.createElement('canvas');
+  cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d');
+
+  // Dark background
+  ctx.fillStyle='#0d1120';
+  ctx.fillRect(0,0,W,H);
+
+  // Central radial colour glow
+  const gr = ctx.createRadialGradient(W/2,H/2,10,W/2,H/2,W*.6);
+  gr.addColorStop(0, proj.hex+'30');
+  gr.addColorStop(1, 'transparent');
+  ctx.fillStyle=gr;
+  ctx.fillRect(0,0,W,H);
+
+  // Top accent bar 6px
+  ctx.fillStyle=proj.hex;
+  ctx.fillRect(0,0,W,6);
+
+  // Bottom thin bar
+  ctx.fillStyle=proj.hex;
+  ctx.globalAlpha=0.22;
+  ctx.fillRect(0,H-3,W,3);
+  ctx.globalAlpha=1;
+
+  // Faint giant number watermark centred
+  ctx.save();
+  ctx.font='bold 280px Georgia, serif';
+  ctx.fillStyle=proj.hex;
+  ctx.globalAlpha=0.055;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(proj.num, W/2, H/2+14);
+  ctx.restore();
+
+  // "PROJECT 01" eyebrow
+  ctx.font='600 13px sans-serif';
+  ctx.fillStyle=proj.hex;
+  ctx.globalAlpha=0.9;
+  ctx.textAlign='center';
+  ctx.textBaseline='alphabetic';
+  ctx.fillText('PROJECT  ' + proj.num, W/2, 52);
+  ctx.globalAlpha=1;
+
+  // Short rule under eyebrow
+  ctx.strokeStyle=proj.hex;
+  ctx.globalAlpha=0.22;
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(W/2-52,63); ctx.lineTo(W/2+52,63);
+  ctx.stroke();
+  ctx.globalAlpha=1;
+
+  // Main title large centred serif
+  ctx.font='bold 40px Georgia, serif';
+  ctx.fillStyle='#F4F6FF';
+  ctx.textAlign='center';
+  const titleLines = wrapTxt(ctx, proj.title, 540, 40);
+  const lh = 52;
+  const totalH = titleLines.length * lh;
+  const ty = H/2 - totalH/2 + lh - 4;
+  titleLines.forEach((ln,i) => ctx.fillText(ln, W/2, ty + i*lh));
+
+  // Subtitle below title
+  const subY = ty + totalH + 10;
+  ctx.font='500 15px sans-serif';
+  ctx.fillStyle=proj.hex;
+  ctx.globalAlpha=0.72;
+  ctx.fillText(proj.sub, W/2, subY);
+  ctx.globalAlpha=1;
+
+  // Bottom hint
+  ctx.font='400 11px sans-serif';
+  ctx.fillStyle='rgba(255,255,255,0.22)';
+  ctx.fillText('Click to view details', W/2, H-20);
+
+  return new THREE.CanvasTexture(cv);
+}
+
+function wrapTxt(ctx,text,maxW,size){
+  const words=text.split(' '), lines=[];
+  let cur='';
+  for(const w of words){
+    const t=cur?cur+' '+w:w;
+    if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}
+    else cur=t;
+  }
+  if(cur)lines.push(cur);
+  return lines;
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h);
+  ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r);
+  ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath(); ctx.fill();
+}
+
+// ═══════════════════════════════════════════════
+// BUILD 3D CARDS
+// ═══════════════════════════════════════════════
+const CW=3.8, CH=2.4, CD=0.1;
+const cardObjs=[];
+const GROUP = new THREE.Group();
+
+const POSITIONS=[[-4.4,0.7,0],[4.4,0.7,0],[-4.4,-2.1,0],[4.4,-2.1,0]];
+const ROTS=[[0,0,0],[0,0,0],[0,0,0],[0,0,0]];
+
+PROJECTS.forEach((proj,i)=>{
+  const g=new THREE.Group();
+  const geo=new THREE.BoxGeometry(CW,CH,CD);
+  const tex=makeCardTex(proj);
+
+  const mats=[
+    new THREE.MeshStandardMaterial({color:proj.color,roughness:.6,metalness:.2}),
+    new THREE.MeshStandardMaterial({color:proj.color,roughness:.6,metalness:.2}),
+    new THREE.MeshStandardMaterial({color:proj.color,roughness:.6,metalness:.2}),
+    new THREE.MeshStandardMaterial({color:proj.color,roughness:.6,metalness:.2}),
+    new THREE.MeshStandardMaterial({map:tex,roughness:.1,metalness:.05}),
+    new THREE.MeshStandardMaterial({color:0x0a0d1a,roughness:.9}),
+  ];
+
+  const mesh=new THREE.Mesh(geo,mats);
+  mesh.castShadow=true;
+
+  // Edge highlight
+  const edges=new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo),
+    new THREE.LineBasicMaterial({color:proj.color,transparent:true,opacity:0.2})
+  );
+  mesh.add(edges);
+  mesh.userData={proj,edges,basePY:POSITIONS[i][1],idx:i};
+
+  // Soft inner glow
+  const gl=new THREE.PointLight(proj.color,0.4,4);
+  gl.position.set(0,0,.4);
+  mesh.add(gl);
+  mesh.userData.glow=gl;
+  mesh.userData.edgeMat=edges.material;
+
+  g.position.set(...POSITIONS[i]);
+  g.rotation.set(...ROTS[i]);
+  g.add(mesh);
+  GROUP.add(g);
+  cardObjs.push({mesh,g,proj,pos:POSITIONS[i],rot:ROTS[i]});
+});
+scene.add(GROUP);
+
+// ── THIN CONNECTION LINES ──
+[[0,1],[0,2],[1,3],[2,3]].forEach(([a,b])=>{
+  const geo=new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(...POSITIONS[a]),
+    new THREE.Vector3(...POSITIONS[b]),
+  ]);
+  scene.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color:0x1e2a4a,transparent:true,opacity:0.5})));
+});
+
+// ── HEADER BILLBOARD ──
+(()=>{
+  const cv=document.createElement('canvas');
+  cv.width=768; cv.height=180;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='rgba(0,0,0,0)';
+  ctx.fillRect(0,0,768,180);
+
+  // Period label
+  ctx.font='500 13px sans-serif';
+  ctx.fillStyle='#5A6480';
+  ctx.textAlign='center';
+  ctx.letterSpacing='4px';
+  ctx.fillText('PROGRESS REPORT · FEB 02 – MAR 25, 2026', 384, 32);
+
+  ctx.font='bold 58px serif';
+  ctx.fillStyle='#F4F6FF';
+  ctx.fillText('Chirag Nayak', 384, 98);
+
+  // Colour dots
+  ['#E05252','#D4892A','#1AA88A','#7C63C0'].forEach((c,i)=>{
+    ctx.fillStyle=c;
+    ctx.beginPath();
+    ctx.arc(322+i*42, 128, 5, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  const tex=new THREE.CanvasTexture(cv);
+  const pl=new THREE.Mesh(
+    new THREE.PlaneGeometry(8,1.9),
+    new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide})
+  );
+  pl.position.set(0,3.55,0);
+  scene.add(pl);
+})();
+
+// ═══════════════════════════════════════════════
+// ORBIT CONTROLS
+// ═══════════════════════════════════════════════
+let drag=false, px=0, py2=0;
+let theta=0, phi=0.0, r=13;
+let tTheta=0, tPhi=0.0, tR=13;
+let autoSpin=false;
+
+renderer.domElement.addEventListener('mousedown',e=>{drag=true;px=e.clientX;py2=e.clientY;});
+renderer.domElement.addEventListener('touchstart',e=>{drag=true;px=e.touches[0].clientX;py2=e.touches[0].clientY;},{passive:true});
+window.addEventListener('mouseup',()=>{drag=false;});
+window.addEventListener('touchend',()=>{drag=false;});
+
+window.addEventListener('mousemove',e=>{
+  if(!drag)return;
+  tTheta-=(e.clientX-px)*0.005;
+  tPhi=Math.max(-0.8,Math.min(1.0,tPhi-(e.clientY-py2)*0.004));
+  px=e.clientX; py2=e.clientY;
+});
+window.addEventListener('touchmove',e=>{
+  if(!drag)return;
+  tTheta-=(e.touches[0].clientX-px)*0.005;
+  tPhi=Math.max(-0.8,Math.min(1.0,tPhi-(e.touches[0].clientY-py2)*0.004));
+  px=e.touches[0].clientX; py2=e.touches[0].clientY;
+  e.preventDefault();
+},{passive:false});
+
+renderer.domElement.addEventListener('wheel',e=>{
+  tR=Math.max(7,Math.min(22,tR+e.deltaY*0.015));
+},{passive:true});
+
+// ═══════════════════════════════════════════════
+// RAYCASTING
+// ═══════════════════════════════════════════════
+const ray=new THREE.Raycaster();
+const mouse=new THREE.Vector2();
+let hovMesh=null, panelOpen=false;
+
+const tip=document.getElementById('tip');
+const cur=document.getElementById('cur');
+
+window.addEventListener('mousemove',e=>{
+  cur.style.left=e.clientX+'px'; cur.style.top=e.clientY+'px';
+  mouse.x=(e.clientX/innerWidth)*2-1;
+  mouse.y=-(e.clientY/innerHeight)*2+1;
+  tip.style.left=(e.clientX+18)+'px';
+  tip.style.top=(e.clientY-8)+'px';
+  if(!drag) doHover();
+});
+
+function doHover(){
+  ray.setFromCamera(mouse,camera);
+  const hits=ray.intersectObjects(cardObjs.map(c=>c.mesh));
+  if(hits.length){
+    const m=hits[0].object;
+    if(hovMesh!==m){ if(hovMesh)unhov(hovMesh); hovMesh=m; hov(m); }
+    const p=m.userData.proj;
+    document.getElementById('tip-name').textContent=p.title;
+    document.getElementById('tip-sub').textContent=p.sub;
+    document.getElementById('tip-dur').style.color=p.hex;
+    document.getElementById('tip-dur').textContent=p.duration;
+    tip.style.opacity='1'; cur.classList.add('big');
+  } else {
+    if(hovMesh){unhov(hovMesh);hovMesh=null;}
+    tip.style.opacity='0'; cur.classList.remove('big');
+  }
+}
+
+function hov(m){
+  m.userData.edgeMat.opacity=0.8;
+  m.userData.glow.intensity=2;
+}
+function unhov(m){
+  m.userData.edgeMat.opacity=0.2;
+  m.userData.glow.intensity=0.4;
+}
+
+renderer.domElement.addEventListener('click',e=>{
+  if(drag)return;
+  ray.setFromCamera(mouse,camera);
+  const hits=ray.intersectObjects(cardObjs.map(c=>c.mesh));
+  if(hits.length) openProj(hits[0].object.userData.proj);
+});
+
+// ═══════════════════════════════════════════════
+// PANEL CONTENT RENDERERS
+// ═══════════════════════════════════════════════
+const panel=document.getElementById('panel');
+const pbody=document.getElementById('panel-body');
+const phead=document.getElementById('panel-head-label');
+
+function openProj(proj){
+  phead.textContent='Project Details';
+  pbody.innerHTML=`
+    <div class="pj-num" style="color:${proj.hex}">${proj.num}</div>
+    <div class="pj-title">${proj.title}</div>
+    <div class="pj-sub">${proj.sub}</div>
+    <span class="pj-dur" style="background:${proj.bg};color:${proj.hex};border:1px solid ${proj.hex}30">
+      ⏱ &nbsp;${proj.duration}
+    </span>
+
+    <div class="sec-label">Pain Point</div>
+    <div class="pain-block" style="border-color:${proj.hex}">${proj.pain}</div>
+
+    <div class="sec-label">Key Achievements</div>
+    <ul class="ach-list">
+      ${proj.items.map(it=>`
+        <li>
+          <span class="ach-bullet" style="background:${proj.hex}20;color:${proj.hex}">✓</span>
+          <span>${it}</span>
+        </li>`).join('')}
+    </ul>
+
+    <div class="sec-label">Technologies Used</div>
+    <div class="tags-wrap">
+      ${proj.tags.map(t=>`
+        <span class="tag" style="background:${proj.bg};color:${proj.hex};border:1px solid ${proj.hex}30">${t}</span>
+      `).join('')}
+    </div>
+  `;
+  openPanel();
+}
+
+function openOverview(){
+  phead.textContent='Overview';
+  pbody.innerHTML=`
+    <div style="margin-bottom:28px">
+      <div class="pj-sub">Feb 02 – Mar 25, 2026</div>
+      <div class="pj-title">Progress Report</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">Chirag Nayak &nbsp;·&nbsp; Engineering</div>
+    </div>
+    ${PROJECTS.map(p=>`
+      <div class="ov-card" onclick="window.__proj('${p.id}')" style="border-color:${p.hex}25">
+        <div class="ov-num" style="color:${p.hex}">${p.num}</div>
+        <div class="ov-info">
+          <div class="ov-name">${p.title}</div>
+          <div class="ov-meta" style="color:${p.hex}">${p.sub} &nbsp;·&nbsp; ${p.duration}</div>
+        </div>
+        <div class="ov-arrow">›</div>
+      </div>`).join('')}
+    <div class="divider"></div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.7;letter-spacing:.3px">
+      Drag the 3D scene to orbit the cards. Hover to preview any project. Click a card or the list above to read full details.
+    </div>
+  `;
+  openPanel();
+}
+
+function openTimeline(){
+  phead.textContent='Timeline';
+  pbody.innerHTML=`
+    <div style="margin-bottom:28px">
+      <div class="pj-sub">Journey</div>
+      <div class="pj-title">Progress Timeline</div>
+    </div>
+    <div class="tl">
+      ${TIMELINE.map((ev,i)=>`
+        <div class="tl-row">
+          <div class="tl-left">
+            <div class="tl-dot" style="background:${ev.hex}"></div>
+            ${i<TIMELINE.length-1?'<div class="tl-stem"></div>':''}
+          </div>
+          <div>
+            <div class="tl-wk" style="color:${ev.hex}">${ev.week}</div>
+            <div class="tl-ttl">${ev.title}</div>
+            <div class="tl-dsc">${ev.desc}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+  `;
+  openPanel();
+}
+
+function openSecondary(){
+  phead.textContent='Contributions';
+  pbody.innerHTML=`
+    <div style="margin-bottom:28px">
+      <div class="pj-sub">Additional Work</div>
+      <div class="pj-title">Secondary Contributions</div>
+    </div>
+    ${SECONDARY.map(s=>`
+      <div class="sec-card">
+        <div class="sec-card-num" style="color:${s.hex}">${s.num}</div>
+        <div class="sec-card-title" style="border-left:2px solid ${s.hex};padding-left:10px">${s.title}</div>
+        <div class="sec-card-body">${s.body}</div>
+      </div>`).join('')}
+    <div class="divider"></div>
+
+    <div class="closing-author">
+      <div class="closing-av" style="background:#D4892A;color:#0B0F1E">CN</div>
+      <div>
+        <div class="closing-name">Chirag Nayak</div>
+        <div class="closing-role">Engineering &nbsp;·&nbsp; March 2026</div>
+      </div>
+    </div>
+  `;
+  openPanel();
+}
+
+window.__proj=id=>openProj(PROJECTS.find(p=>p.id===id));
+
+function openPanel(){ panelOpen=true; panel.classList.add('open'); }
+function closePanel(){ panelOpen=false; panel.classList.remove('open'); clearActiveTab(); }
+
+document.getElementById('panel-close').addEventListener('click',closePanel);
+
+function clearActiveTab(){ document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active')); }
+
+document.querySelectorAll('.nav-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    clearActiveTab(); btn.classList.add('active');
+    const v=btn.dataset.view;
+    if(v==='overview')  openOverview();
+    if(v==='timeline')  openTimeline();
+    if(v==='secondary') openSecondary();
+  });
+});
+
+// ── INTRO ──
+document.getElementById('enter').addEventListener('click',()=>{
+  document.getElementById('intro').classList.add('out');
+  setTimeout(()=>{
+    document.getElementById('nav').classList.add('show');
+    document.getElementById('hint').classList.add('show');
+    setTimeout(()=>document.getElementById('hint').style.opacity='0', 6000);
+  },700);
+});
+
+// ═══════════════════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════════════════
+const clock=new THREE.Clock();
+
+function animate(){
+  requestAnimationFrame(animate);
+  const t=clock.getElapsedTime();
+
+  theta+=(tTheta-theta)*0.055;
+  phi  +=(tPhi  -phi  )*0.055;
+  r    +=(tR    -r    )*0.055;
+
+  camera.position.set(
+    r*Math.sin(theta)*Math.cos(phi),
+    r*Math.sin(phi)+1,
+    r*Math.cos(theta)*Math.cos(phi)
+  );
+  camera.lookAt(0,0,0);
+
+  // Float cards
+  cardObjs.forEach(({g,pos,rot},i)=>{
+    const o=i*1.3;
+    g.position.y=pos[1]+Math.sin(t*.4+o)*.05;
+    g.rotation.x=rot[0];
+    g.rotation.z=rot[2];
+  });
+
+  dust.rotation.y=t*.012;
+
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
